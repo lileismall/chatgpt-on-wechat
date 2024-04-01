@@ -8,23 +8,29 @@ from bridge.reply import Reply, ReplyType
 
 # Baidu Unit对话接口 (可用, 但能力较弱)
 class BaiduUnitBot(Bot):
+    # def reply(self, query, context=None):
+    #     token = self.get_token()
+    #     url = "https://aip.baidubce.com/rpc/2.0/unit/service/v3/chat?access_token=" + token
+    #     post_data = (
+    #         '{"version":"3.0","service_id":"S73177","session_id":"","log_id":"7758521","skill_ids":["1221886"],"request":{"terminal_id":"88888","query":"'
+    #         + query
+    #         + '", "hyper_params": {"chat_custom_bot_profile": 1}}}'
+    #     )
+    #     print(post_data)
+    #     headers = {"content-type": "application/x-www-form-urlencoded"}
+    #     response = requests.post(url, data=post_data.encode(), headers=headers)
+    #     if response:
+    #         reply = Reply(
+    #             ReplyType.TEXT,
+    #             response.json()["result"]["context"]["SYS_PRESUMED_HIST"][1],
+    #         )
+    #         return reply
     def reply(self, query, context=None):
-        token = self.get_token()
-        url = "https://aip.baidubce.com/rpc/2.0/unit/service/v3/chat?access_token=" + token
-        post_data = (
-            '{"version":"3.0","service_id":"S73177","session_id":"","log_id":"7758521","skill_ids":["1221886"],"request":{"terminal_id":"88888","query":"'
-            + query
-            + '", "hyper_params": {"chat_custom_bot_profile": 1}}}'
-        )
-        print(post_data)
-        headers = {"content-type": "application/x-www-form-urlencoded"}
-        response = requests.post(url, data=post_data.encode(), headers=headers)
-        if response:
-            reply = Reply(
+        reply = Reply(
                 ReplyType.TEXT,
-                response.json()["result"]["context"]["SYS_PRESUMED_HIST"][1],
+                "are you ok",
             )
-            return reply
+        return reply
 
     def get_token(self):
         access_key = "YOUR_ACCESS_KEY"

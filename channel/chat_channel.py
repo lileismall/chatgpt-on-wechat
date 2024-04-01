@@ -11,7 +11,9 @@ from bridge.reply import *
 from channel.channel import Channel
 from common.dequeue import Dequeue
 from common import memory
+from common import dbfunc
 from plugins import *
+# from db import *
 
 try:
     from voice.audio_convert import any_to_wav
@@ -108,7 +110,9 @@ class ChatChannel(Channel):
                         if match_prefix:
                             content = content.replace(match_prefix, "", 1).strip()
                     if context["msg"].is_at:
+                        # 发送者的昵称
                         nick_name = context["msg"].actual_user_nickname
+                        
                         if nick_name and nick_name in nick_name_black_list:
                             # 黑名单过滤
                             logger.warning(f"[WX] Nickname {nick_name} in In BlackList, ignore")
@@ -122,6 +126,7 @@ class ChatChannel(Channel):
                         if isinstance(context["msg"].at_list, list):
                             for at in context["msg"].at_list:
                                 pattern = f"@{re.escape(at)}(\u2005|\u0020)"
+                                # 去除@+ainame的原始信息
                                 subtract_res = re.sub(pattern, r"", subtract_res)
                         if subtract_res == content and context["msg"].self_display_name:
                             # 前缀移除后没有变化，使用群昵称再次移除
