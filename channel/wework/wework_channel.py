@@ -111,7 +111,7 @@ def _check(func):
         create_time = cmsg.create_time  # 消息时间戳
         if create_time is None:
             return func(self, cmsg)
-        if int(create_time) < int(time.time()) - 60:  # 跳过1分钟前的历史消息
+        if int(create_time) < int(time.time()) - conf().get("skip_time", 60):  # 跳过1分钟前的历史消息
             logger.debug("[WX]history message {} skipped".format(msgId))
             return
         return func(self, cmsg)

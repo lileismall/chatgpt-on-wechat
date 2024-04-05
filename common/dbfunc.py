@@ -61,6 +61,21 @@ def insert_info(name):
     conn.close()
     return cur.lastrowid
 
+def del_max_time_info(name):
+    conn = create_db("info.db")
+    sql = f"""DELETE FROM info
+WHERE name = '{name}' AND create_time = (SELECT MAX(create_time) FROM info WHERE name = '{name}');
+"""
+    
+    cur = conn.cursor()
+    
+    cur.execute(sql)
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return cur.lastrowid
+
 def get_cnt_by_name(name, type):
     if type == "week":
         sql = f"""

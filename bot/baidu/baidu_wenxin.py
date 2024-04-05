@@ -14,7 +14,7 @@ import time
 BAIDU_API_KEY = conf().get("baidu_wenxin_api_key")
 BAIDU_SECRET_KEY = conf().get("baidu_wenxin_secret_key")
 
-WEIXIN_COMMON_STR = "不要用markdown格式回复，消息最终是要发到微信群里,可以多用一些表情"
+WEIXIN_COMMON_STR = "切记不要用markdown格式回复，消息最终是要发到微信群里,使用小红书风格,请回复适合在微信里显示的文字可以多用一些表情\n"
 
 class BaiduWenxinBot(Bot):
 
@@ -63,6 +63,18 @@ class BaiduWenxinBot(Bot):
         
         return reply_conent
     
+    def get_people_info_from_db(self, nick_name):
+        '''
+        获取用户的打卡信息
+        return week_cnt, month_cnt, all_cnt
+        '''
+        
+        week_cnt =  dbfunc.get_cnt_by_name(nick_name, "week")
+        month_cnt = dbfunc.get_cnt_by_name(nick_name, "month")
+        all_cnt =  dbfunc.get_cnt_by_name(nick_name, "all")
+        
+        return week_cnt, month_cnt, all_cnt
+    
     def get_reply_by_agi(self, new_query, session_id):
         session = self.sessions.session_query(new_query, session_id)
         result = self.reply_text(session)
@@ -84,6 +96,7 @@ class BaiduWenxinBot(Bot):
 
     def reply(self, query, context=None):
         # acquire reply content
+        nick_name = context.kwargs["msg"].actual_user_nickname
         if context and context.type:
             if context.type == ContextType.TEXT:
                 logger.info("[BAIDU] query={}".format(query))
@@ -98,35 +111,73 @@ class BaiduWenxinBot(Bot):
                 elif query == "周榜":
                     info_str = dbfunc.get_week_top10()
                     logger.debug(f"[BAIDU] top_str={info_str}")
-                    reply = self.get_reply_by_agi(f"周榜：{info_str}\n 你是一个记录公司运动打卡的人，根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短, 做一些解析，{WEIXIN_COMMON_STR}", session_id)
+                    reply = self.get_reply_by_agi(f"{WEIXIN_COMMON_STR}\n 周榜：{info_str}\n 根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短", session_id)
                     return reply
                 elif query == "月榜":
                     info_str = dbfunc.get_week_top10()
                     logger.debug(f"[BAIDU] top_str={info_str}")
-                    reply = self.get_reply_by_agi(f"月榜：{info_str}\n 你是一个记录公司运动打卡的人，根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短, 做一些解析，{WEIXIN_COMMON_STR}", session_id)
+                    reply = self.get_reply_by_agi(f"{WEIXIN_COMMON_STR}\n 月榜：{info_str}\n 根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短", session_id)
                     return reply
                 elif query == "总榜":
                     info_str = dbfunc.get_week_top10()
                     logger.debug(f"[BAIDU] top_str={info_str}")
-                    reply = self.get_reply_by_agi(f"总榜：{info_str}\n 你是一个记录公司运动打卡的人，根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短, 做一些解析，{WEIXIN_COMMON_STR}", session_id)
+                    reply = self.get_reply_by_agi(f"{WEIXIN_COMMON_STR}\n 总榜：{info_str}\n 根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短", session_id)
                     return reply
                 
-                elif query == "打卡" or query == "查询":
-                    info_str = self.my_reply_text(query, context)
-                    # weather_json = self.get_weather()
-                    # weather_str = f"上海天气：{wifeather_json['lives'][0]['weather']}, 温度：{weather_json['lives'][0]['temperature']}度"
-                    time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-                    # current_date_time_str = f"当前时间：{time_str}" if query == "打卡" else ""
-                    new_query = f"{info_str} \n你是公司里记录员工打卡的工作人员，根据上面的锻炼打卡数据，重新组织一下语句，数据显示整洁，整体尽量简短,{WEIXIN_COMMON_STR}"
-                    reply = self.get_reply_by_agi(new_query, session_id)
-                    return reply
+                elif query == "打卡":
+                    dbfunc.insert_info(nick_name)
+                    week_cnt, month_cnt, all_cnt = self.get_people_info_from_db(nick_name)
+                    reply_str = f"""🎉打卡成功！🎉
+
+📅 本周已累计打卡: {week_cnt}次
+📅 本月已累计打卡: {month_cnt}次
+📅 总累计打卡次数：{all_cnt}次
+
+加油！继续坚持！💪💪💪
+                    """
+                    return Reply(ReplyType.TEXT, reply_str)
+                elif query == "取消打卡":
+                    week_cnt, month_cnt, all_cnt = self.get_people_info_from_db(nick_name)
+                    if week_cnt == 0:
+                        reply_str = f"""取消打卡失败!
+你还没有打卡记录哦！ 😂😂😂
+"""
+                    else:
+                        dbfunc.del_max_time_info(nick_name)
+                        week_cnt, month_cnt, all_cnt = self.get_people_info_from_db(nick_name)
+                        reply_str = f"""取消打卡成功！
+
+📅 本周已累计打卡: {week_cnt}次
+📅 本月已累计打卡: {month_cnt}次
+📅 总累计打卡次数：{all_cnt}次
+
+下次没事儿别瞎点了哦！😂😂😂
+                    """
+                    return Reply(ReplyType.TEXT, reply_str)
                 elif query == "查询":
-                    info_str = self.my_reply_text(query, context)
-                    # weather_json = self.get_weather()
-                    # weather_str = f"上海天气：{weather_json['lives'][0]['weather']}, 温度：{weather_json['lives'][0]['temperature']}度"
-                    new_query = f"{info_str} \n根据上面的查询到的锻炼打卡数据，重新组织一下语言回复查询的人，数据显示整洁，整体尽量简短,{WEIXIN_COMMON_STR}"
-                    reply = self.get_reply_by_agi(new_query, session_id)
-                    return reply
+                    week_cnt, month_cnt, all_cnt = self.get_people_info_from_db(nick_name)
+                    if week_cnt == 0:
+                        reply_str = f"""你还没有打卡记录哦！得加油了！💪💪💪"""
+                    else:
+                        reply_str = f"""
+📅 本周已累计打卡: {week_cnt}次
+📅 本月已累计打卡: {month_cnt}次
+📅 总累计打卡次数：{all_cnt}次
+
+加油！继续坚持！💪💪💪
+                    """
+                    return Reply(ReplyType.TEXT, reply_str)
+                elif query == "帮助":
+                    reply_str = f"""📅 打卡功能说明 📅
+打卡：打卡成功后，会记录你的打卡次数
+取消打卡：取消你最近一次的打卡记录
+查询：查询你的打卡记录
+周榜：查看本周打卡排行榜
+月榜：查看本月打卡排行榜
+总榜：查看总打卡排行榜
+"""
+                    return Reply(ReplyType.TEXT, reply_str)
+                
                     
                 else:
                     session = self.sessions.session_query(query, session_id)
